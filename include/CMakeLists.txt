@@ -1,0 +1,3 @@
+
+set(project_INCLUDE_DIRS ${project_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_SOURCE_DIR})
