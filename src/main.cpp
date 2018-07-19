@@ -39,6 +39,8 @@
 
 //header for timings
 #include <chrono>
+#include <cinttypes>
+#include <cstdio>
 
 using namespace std::chrono;
 
@@ -49,7 +51,7 @@ using tensorflow::string;
 using tensorflow::int32;
 
 
-inline bool exists_test (const std::string& name) {
+inline bool checkExists (const std::string& name) {
     return ( access( name.c_str(), F_OK ) != -1 );
 }
 // Takes a file name, and loads a list of labels from it, one per line, and
@@ -176,7 +178,7 @@ Status LoadGraph(const string& graph_file_name,
 //
 
 cv::Mat readImage(string image_path){
-    if(!exists_test(image_path)){
+    if(!checkExists(image_path)){
       std::cout << "File doesn't exits" << std::endl;
       exit(-1);
     }
@@ -185,52 +187,78 @@ cv::Mat readImage(string image_path){
     return imageMat;
 }
 
-
+    
 int main(int argc, char *argv[])
 {
+    if(argc < 5){
+        fprintf(stderr, "usage: %s <graph.pb> <input_layer> <image_dim> <jpg_image_path>\n", argv[0]);
+        return 0;
+    }
+
+    //string graph_path ="../ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb";
+    string graph_path = argv[1];
+
+    //string input_layer = "image_tensor:0";
+    string input_layer = argv[2];
+
+    //int32 input_width = 299;
+    int32 input_width = atoi(argv[3]);
+    int32 input_height = input_width;
 
     // load an image  
-    std::string input = "/home/nvidia/workspace/cpp_project_sample/resources/data/test4.jpg";
+    //string image_path= "/home/nvidia/workspace/cpp_project_sample/resources/data/test4.jpg";
+    string image_path = argv[4];
+
 
     string labels ="mscoco_label_map.pbtxt";
-    int32 input_width = 299;
-    int32 input_height = 299;
     int32 depth = 3;
     float input_mean = 0;
     float input_std = 255;
-    string input_layer = "image_tensor:0";
+
     std::vector<string> output_layer ={ "detection_boxes:0", "detection_scores:0", "detection_classes:0", "num_detections:0" };
 
 
     std::unique_ptr<tensorflow::Session> session;
-    string graph_path ="../ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb";
     std::vector<Tensor> resized_tensors;
-    std::string image_path= input;
-    Status read_tensor_status;
     std::vector<Tensor> outputs;
 
     // First we load and initialize the model.
     LoadGraph(graph_path, &session);
+
     ReadTensorFromImageFile(image_path, input_height, input_width, input_mean,
                             input_std, &resized_tensors);
+
     //============================================//
     const Tensor& resized_tensor = resized_tensors[0];
-    // << ",data:" << resized_tensor.flat<tensorflow::uint8>();
-    // Actually run the image through the model.
-    
-    auto start = high_resolution_clock::now();
- 
-    session->Run({{input_layer, resized_tensor}},
-                                     output_layer, {}, &outputs);
 
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<milliseconds>(stop - start);
+    // Write output of 50 iterations to file resultFile
+    FILE * pFile;
+    pFile = fopen("./latency_results_in_ms.csv","w");
 
-    std::cout << "time forward(ms): " << duration.count() << std::endl;
+    int64_t inference_time;
+
+    for (int i = 0; i < 50; ++i) {
+        auto start = high_resolution_clock::now();
+     
+        // Forward step
+        session->Run({{input_layer, resized_tensor}},
+                                         output_layer, {}, &outputs);
+
+        auto stop = high_resolution_clock::now();
+
+        auto duration = duration_cast<milliseconds>(stop - start);
+
+        inference_time = duration.count();
+        fprintf(pFile,"%" PRId64 "\n",inference_time);
+
+        std::cout << "time forward(ms): " << inference_time << std::endl;
+        
+    }
 
     tensorflow::TTypes<float>::Flat scores = outputs[1].flat<float>();
     tensorflow::TTypes<float>::Flat classes = outputs[2].flat<float>();
     tensorflow::TTypes<float>::Flat num_detections = outputs[3].flat<float>();
+
     auto boxes = outputs[0].flat_outer_dims<float,3>();
 
     for(size_t i = 0; i < num_detections(0) && i < 20;++i)
