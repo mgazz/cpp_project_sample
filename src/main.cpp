@@ -125,19 +125,7 @@ Status ReadTensorFromImageFile(const string& file_name, const int input_height,
     // Now try to figure out what kind of file it is and decode it.
     const int wanted_channels = 3;
     tensorflow::Output image_reader;
-    //if (tensorflow::StringPiece(file_name).ends_with(".png")) {
-        //image_reader = DecodePng(root.WithOpName("png_reader"), file_reader,
-                                 //DecodePng::Channels(wanted_channels));
-    //} else if (tensorflow::StringPiece(file_name).ends_with(".gif")) {
-        //// gif decoder returns 4-D tensor, remove the first dim
-        //image_reader =
-                //Squeeze(root.WithOpName("squeeze_first_dim"),
-                        //DecodeGif(root.WithOpName("gif_reader"), file_reader));
-    //} else {
-        //// Assume if it's neither a PNG nor a GIF then it must be a JPEG.
-        //image_reader = DecodeJpeg(root.WithOpName("jpeg_reader"), file_reader,
-                                  //DecodeJpeg::Channels(wanted_channels));
-    //}
+
     image_reader = DecodeJpeg(root.WithOpName("jpeg_reader"), file_reader,
                               DecodeJpeg::Channels(wanted_channels));
     // Now cast the image data to float so we can do normal math on it.
@@ -152,19 +140,6 @@ Status ReadTensorFromImageFile(const string& file_name, const int input_height,
     // have to add a batch dimension of 1 to the start with ExpandDims().
     auto dims_expander = ExpandDims(root.WithOpName("dim"), uint8_caster, 0);
 
-    // Bilinearly resize the image to fit the required dimensions.
-    // auto resized = ResizeBilinear(
-    //     root, dims_expander,
-    //     Const(root.WithOpName("size"), {input_height, input_width}));
-
-
-    // Subtract the mean and divide by the scale.
-    // auto div =  Div(root.WithOpName(output_name), Sub(root, dims_expander, {input_mean}),
-    //     {input_std});
-
-
-    //cast to int
-    //auto uint8_caster =  Cast(root.WithOpName("uint8_caster"), div, tensorflow::DT_UINT8);
 
     // This runs the GraphDef network definition that we've just constructed, and
     // returns the results in the output tensor.
@@ -214,51 +189,19 @@ cv::Mat readImage(string image_path){
 int main(int argc, char *argv[])
 {
 
-  //if(argc<2){
-    //printf("Usage: main <image-file-name>\n");
-    //exit(0);
-  //}
+    // load an image  
+    std::string input = "/home/nvidia/workspace/cpp_project_sample/resources/data/test4.jpg";
 
-  // load an image  
-  std::string input = "/home/nvidia/workspace/cpp_project_sample/resources/data/test4.jpg";
-
-  cv::Mat image = readImage(input);
-
-  //cv::Mat image=cv::imread(input.c_str(),cv::IMREAD_COLOR);
-
-  //if( image.empty()){
-  //  std::cout <<  "Could not open or find the image" << std::endl ;
-  //  return -1;
- // }
-  //cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE ); // Create a window for display.
-  //cv::imshow( "Display window", image ); 
-  //cv::waitKey(0);
-  
-
-  //#########################################################
-  //string graph ="ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb";
-      // creating a Tensor for storing the data
     string labels ="mscoco_label_map.pbtxt";
     int32 input_width = 299;
     int32 input_height = 299;
-    int32 depth =3;
+    int32 depth = 3;
     float input_mean = 0;
     float input_std = 255;
     string input_layer = "image_tensor:0";
     std::vector<string> output_layer ={ "detection_boxes:0", "detection_scores:0", "detection_classes:0", "num_detections:0" };
 
-    bool self_test = false;
-    string root_dir = "";
 
-    tensorflow::Tensor input_tensor(tensorflow::DT_FLOAT, tensorflow::TensorShape({1,input_height,input_width,depth}));
-    auto input_tensor_mapped = input_tensor.tensor<float, 4>();
-    cv::Mat img_stream;
-    const float * source_data;
-    // copying the data into the corresponding tensor
-    //cv::namedWindow("camera");
-    cv::Size s(input_height,input_width);
-    cv::Mat resized_img;
-    cv::Mat resized_i;
     std::unique_ptr<tensorflow::Session> session;
     string graph_path ="../ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb";
     std::vector<Tensor> resized_tensors;
@@ -277,10 +220,6 @@ int main(int argc, char *argv[])
     // << ",data:" << resized_tensor.flat<tensorflow::uint8>();
     // Actually run the image through the model.
     
-    // First inference takes a lot of time (14 seconds)
-    session->Run({{input_layer, resized_tensor}},
-                                     output_layer, {}, &outputs);
-
     auto start = high_resolution_clock::now();
  
     session->Run({{input_layer, resized_tensor}},
@@ -293,38 +232,18 @@ int main(int argc, char *argv[])
 
     image_width = resized_tensor.dims();
     image_height = 0;
-    //int image_height = resized_tensor.shape()[1];
-    //tensorflow::TTypes<float>::Flat iNum = outputs[0].flat<float>();
     tensorflow::TTypes<float>::Flat scores = outputs[1].flat<float>();
     tensorflow::TTypes<float>::Flat classes = outputs[2].flat<float>();
     tensorflow::TTypes<float>::Flat num_detections = outputs[3].flat<float>();
     auto boxes = outputs[0].flat_outer_dims<float,3>();
-//        LOG(ERROR) << "num_detections:" << num_detections(0) << "," << outputs[0].shape().DebugString();
-//
-    cv::Size image_size = image.size();
 
     for(size_t i = 0; i < num_detections(0) && i < 20;++i)
     {
         if(scores(i) > 0.4)
         {
             std::cout<< i << ",score:" << scores(i) << ",class:" << classes(i)<< ",box:" << "," << boxes(0,i,0) << "," << boxes(0,i,1) << "," << boxes(0,i,2)<< "," << boxes(0,i,3) << std::endl;
-            //cv::Point p1 = cv::Point(boxes(0,i,1)*image_size.width,
-             //                        boxes(0,i,0)*image_size.height);
-            //cv::Point p2 = cv::Point(
-             //                        boxes(0,i,3)*image_size.width,
-              //                       boxes(0,i,2)*image_size.height);
-            //cv::Rect r =cv::Rect(boxes(0,i,0)*image_size.width,
-                      //boxes(0,i,1)*image_size.height,
-                      //(boxes(0,i,2)-boxes(0,i,0))*image_size.width,
-                      //(boxes(0,i,1)-boxes(0,i,3))*image_size.height);
-            //cv::rectangle(image,p1,p2,cv::Scalar(0,0,0),1,8);
             
         }
     }
-    //cv::imshow( "Display window", image ); 
-    //cv::waitKey(0);
-
-
-
     return 0;
 }
