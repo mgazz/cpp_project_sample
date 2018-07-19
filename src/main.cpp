@@ -208,8 +208,6 @@ int main(int argc, char *argv[])
     std::string image_path= input;
     Status read_tensor_status;
     std::vector<Tensor> outputs;
-    int image_width;
-    int image_height;
 
     // First we load and initialize the model.
     LoadGraph(graph_path, &session);
@@ -230,8 +228,6 @@ int main(int argc, char *argv[])
 
     std::cout << "time forward(ms): " << duration.count() << std::endl;
 
-    image_width = resized_tensor.dims();
-    image_height = 0;
     tensorflow::TTypes<float>::Flat scores = outputs[1].flat<float>();
     tensorflow::TTypes<float>::Flat classes = outputs[2].flat<float>();
     tensorflow::TTypes<float>::Flat num_detections = outputs[3].flat<float>();
