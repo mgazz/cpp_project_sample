@@ -10,11 +10,14 @@
 ## Tensorflow build
 ####
 #--config=monolitic is  required if you want to load images using Opencv
-#git clone https://github.com/tensorflow/tensorflow.git 
-#
+git clone https://github.com/tensorflow/tensorflow.git 
+# 
 cd tensorflow 
+git checkout v1.8.0
 #
-#bazel build --jobs 4 --config=monolithic tensorflow:libtensorflow_cc.so
+git apply ../../patch/*.patch
+#
+bazel build --jobs 4 --config=monolithic tensorflow:libtensorflow_cc.so
 #
 sudo mkdir -p /opt/tensorflow/{lib,include}
 #
@@ -51,47 +54,47 @@ cd -
 ####
 ### Install protobuf 3
 ####
-#mkdir protobuf
-##
-#cd protobuf/
-##
-#wget https://github.com/google/protobuf/releases/download/v3.5.1/protobuf-cpp-3.5.1.zip
-##
-##extract protobuf-cpp-3.5.1.zip 
-#unzip protobuf-cpp-3.5.1.zip 
-##
-#cd protobuf-3.5.1/
-##
-#sudo apt-get install autoconf automake libtool curl make g++ unzip
-##
-#./autogen.sh 
-##
-#./configure --prefix=/opt/protobuf --includedir=/opt/protobuf/include/
-##
-#make -j8
-##
-#sudo make install
-##
-#cd ../../
+mkdir protobuf
+#
+cd protobuf/
+#
+wget https://github.com/google/protobuf/releases/download/v3.5.1/protobuf-cpp-3.5.1.zip
+#
+#extract protobuf-cpp-3.5.1.zip 
+unzip protobuf-cpp-3.5.1.zip 
+#
+cd protobuf-3.5.1/
+#
+sudo apt-get install autoconf automake libtool curl make g++ unzip
+#
+./autogen.sh 
+#
+./configure --prefix=/opt/protobuf --includedir=/opt/protobuf/include/
+#
+make -j8
+#
+sudo make install
+#
+cd ../../
 
 ####
 ## Install eigen3
 ####
-#git clone https://github.com/eigenteam/eigen-git-mirror
-##
-#cd eigen-git-mirror/
-##
-#git checkout 3.3.4
-##
-#mkdir build
-##
-#cd build/
-##
-#cmake -DCMAKE_INSTALL_PREFIX=/opt/eigen3 ..
-##
-#make -j8
-##
-#sudo make install
-##
-#cd ../../
+git clone https://github.com/eigenteam/eigen-git-mirror
+#
+cd eigen-git-mirror/
+#
+git checkout 3.3.4
+#
+mkdir build
+#
+cd build/
+#
+cmake -DCMAKE_INSTALL_PREFIX=/opt/eigen3 ..
+#
+make -j8
+#
+sudo make install
+#
+cd ../../
 

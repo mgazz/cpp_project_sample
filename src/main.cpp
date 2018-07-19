@@ -26,6 +26,7 @@
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/core/threadpool.h"
 #include "tensorflow/core/lib/io/path.h"
+#include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/init_main.h"
 #include "tensorflow/core/platform/logging.h"
@@ -36,6 +37,11 @@
 #include <vector>
 #include <iostream>
 
+//header for timings
+#include <chrono>
+
+using namespace std::chrono;
+
 using tensorflow::Flag;
 using tensorflow::Tensor;
 using tensorflow::Status;
@@ -43,6 +49,9 @@ using tensorflow::string;
 using tensorflow::int32;
 
 
+inline bool exists_test (const std::string& name) {
+    return ( access( name.c_str(), F_OK ) != -1 );
+}
 // Takes a file name, and loads a list of labels from it, one per line, and
 // returns a vector of the strings. It pads with empty strings so the length
 // of the result is a multiple of 16, because our model expects that.
@@ -199,14 +208,21 @@ int main(int argc, char *argv[])
   //}
 
   // load an image  
-  std::string input = "/home/mgazz/workspace/mgazz/cpp-tensorflow-inference/resources/data/test4.jpg";
+  std::string input = "/home/nvidia/workspace/cpp_project_sample/resources/data/test4.jpg";
   std::cout << input.c_str() << std::endl;
-  cv::Mat image=cv::imread(input.c_str(),1);
+  if(!exists_test(input)){
+	  std::cout << "File doesn't exits" << std::endl;
+	  return -1;
+  }else{
+	  std::cout << "File exits" << std::endl;
 
-  if( image.empty()){
-    std::cout <<  "Could not open or find the image" << std::endl ;
-    return -1;
   }
+  cv::Mat image=cv::imread(input.c_str(),cv::IMREAD_COLOR);
+
+  //if( image.empty()){
+  //  std::cout <<  "Could not open or find the image" << std::endl ;
+  //  return -1;
+ // }
   //cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE ); // Create a window for display.
   //cv::imshow( "Display window", image ); 
   //cv::waitKey(0);
@@ -253,9 +269,21 @@ int main(int argc, char *argv[])
     const Tensor& resized_tensor = resized_tensors[0];
     // << ",data:" << resized_tensor.flat<tensorflow::uint8>();
     // Actually run the image through the model.
-
+    
+    // First inference takes a lot of time (14 seconds)
     session->Run({{input_layer, resized_tensor}},
                                      output_layer, {}, &outputs);
+
+    auto start = high_resolution_clock::now();
+ 
+    session->Run({{input_layer, resized_tensor}},
+                                     output_layer, {}, &outputs);
+
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+
+    std::cout << "time forward(ms): " << duration.count() << std::endl;
+
     image_width = resized_tensor.dims();
     image_height = 0;
     //int image_height = resized_tensor.shape()[1];
@@ -272,80 +300,24 @@ int main(int argc, char *argv[])
     {
         if(scores(i) > 0.4)
         {
-            std::cout<< i << ",score:" << scores(i) << ",class:" << classes(i)<< ",box:" << "," << boxes(0,i,0) << "," << boxes(0,i,1) << "," << boxes(0,i,2)<< "," << boxes(0,i,3);
-            cv::Point p1 = cv::Point(boxes(0,i,1)*image_size.width,
-                                     boxes(0,i,0)*image_size.height);
-            cv::Point p2 = cv::Point(
-                                     boxes(0,i,3)*image_size.width,
-                                     boxes(0,i,2)*image_size.height);
+            std::cout<< i << ",score:" << scores(i) << ",class:" << classes(i)<< ",box:" << "," << boxes(0,i,0) << "," << boxes(0,i,1) << "," << boxes(0,i,2)<< "," << boxes(0,i,3) << std::endl;
+            //cv::Point p1 = cv::Point(boxes(0,i,1)*image_size.width,
+             //                        boxes(0,i,0)*image_size.height);
+            //cv::Point p2 = cv::Point(
+             //                        boxes(0,i,3)*image_size.width,
+              //                       boxes(0,i,2)*image_size.height);
             //cv::Rect r =cv::Rect(boxes(0,i,0)*image_size.width,
                       //boxes(0,i,1)*image_size.height,
                       //(boxes(0,i,2)-boxes(0,i,0))*image_size.width,
                       //(boxes(0,i,1)-boxes(0,i,3))*image_size.height);
-            cv::rectangle(image,p1,p2,cv::Scalar(0,0,0),1,8);
+            //cv::rectangle(image,p1,p2,cv::Scalar(0,0,0),1,8);
             
         }
     }
-    cv::imshow( "Display window", image ); 
-    cv::waitKey(0);
+    //cv::imshow( "Display window", image ); 
+    //cv::waitKey(0);
 
 
 
     return 0;
-  
-
-  //#################################
-  //string graph_path = "../data/tensorflow_inception_graph.pb";
-  //tensorflow::port::InitMain(input.c_str(),&argc, &argv);
-
-  //tensorflow::GraphDef graph_def;
-  //if (!ReadBinaryProto(tensorflow::Env::Default(), graph_path, &graph_def).ok()) {
-    //LOG(ERROR) << "Read proto";
-    //return -1;
-  //}
-
-  //std::unique_ptr<tensorflow::Session> session;
-  //tensorflow::SessionOptions sess_opt;
-  //sess_opt.config.mutable_gpu_options()->set_allow_growth(true);
-  //(&session)->reset(tensorflow::NewSession(sess_opt));
-  //if (!session->Create(graph_def).ok()) {
-    //LOG(ERROR) << "Create graph";
-    //return -1;
-  //}
-
-  ////const int batch_size = argc - 1;
-  //const int batch_size = 1;
-  //if (batch_size != 1) {
-    //LOG(ERROR) << "Batch mode for the pretrained inception-v3 is unsupported";
-    //LOG(ERROR) << " - https://github.com/tensorflow/tensorflow/issues/554";
-    //return -1;
-  //}
-
-  //int32 input_dim = 299;
-  //int32 input_mean = 128;
-  //int32 input_std = 128;
-  //std::vector<Tensor> inputs;
-  ////std::string image_path(argv[1]);
-  //if (!ReadTensorFromImageFile(input, input_dim, input_dim, input_mean,
-                               //input_std, &inputs).ok()) {
-    //LOG(ERROR) << "Load image";
-    //return -1;
-  //}
-
-  //std::vector<Tensor> outputs;
-  //string input_layer = "Mul";
-  //string output_layer = "softmax";
-  //if (!session->Run({{input_layer, inputs[0]}},
-                     //{output_layer}, {}, &outputs).ok()) {
-    //LOG(ERROR) << "Running model failed";
-    //return -1;
-  //}
-
-  //Eigen::Map<Eigen::VectorXf> pred(outputs[0].flat<float>().data(),
-                                   //outputs[0].NumElements());
-  //int maxIndex; float maxValue = pred.maxCoeff(&maxIndex);
-  //LOG(INFO) << "P( " << maxIndex << " | image ) = " << maxValue;
-
-  //return 0;
-
 }

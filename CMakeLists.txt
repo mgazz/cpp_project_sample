@@ -91,6 +91,9 @@ if (Protobuf_FOUND)
     set ( dependencies_LIBS ${dependencies_LIBS} ${Protobuf_LIBRARY})
 endif()
 
+set (dependencies_LIBS ${dependencies_LIBS} /home/nvidia/workspace/cpp_project_sample/deps/tensorflow/bazel-bin/tensorflow)
+
+
 
 
 ##### ======= add all dependencies together in ${project_INCLUDE_DIRS}/${project_INCLUDE_DIRS} =======
@@ -111,7 +114,8 @@ endif()
 
 #add_subdirectory(python)
 
-
+set(GCC_TENSORFLOW_LINK_FLAGS    "-ltensorflow_framework ")
+set( CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} ${GCC_TENSORFLOW_LINK_FLAGS}" )
 
 
 
@@ -120,6 +124,6 @@ endif()
 add_executable( example ./src/main.cpp)
 
 ##link ensemble library to executable
-target_link_libraries( example ${dependencies_LIBS})
+target_link_libraries( example ${dependencies_LIBS} -ltensorflow_framework)
 target_include_directories(example PUBLIC
         ${project_INCLUDE_DIRS})
