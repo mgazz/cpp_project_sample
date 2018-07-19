@@ -199,6 +199,18 @@ Status LoadGraph(const string& graph_file_name,
 // inspired from: https://github.com/jhjin/tensorflow-cpp
 // inspired from: https://github.com/memo/ofxMSATensorFlow/issues/34
 //
+
+cv::Mat readImage(string image_path){
+    if(!exists_test(image_path)){
+      std::cout << "File doesn't exits" << std::endl;
+      exit(-1);
+    }
+    cv::Mat imageMat = cv::imread(image_path.c_str(),cv::IMREAD_COLOR);
+
+    return imageMat;
+}
+
+
 int main(int argc, char *argv[])
 {
 
@@ -209,15 +221,10 @@ int main(int argc, char *argv[])
 
   // load an image  
   std::string input = "/home/nvidia/workspace/cpp_project_sample/resources/data/test4.jpg";
-  std::cout << input.c_str() << std::endl;
-  if(!exists_test(input)){
-	  std::cout << "File doesn't exits" << std::endl;
-	  return -1;
-  }else{
-	  std::cout << "File exits" << std::endl;
 
-  }
-  cv::Mat image=cv::imread(input.c_str(),cv::IMREAD_COLOR);
+  cv::Mat image = readImage(input);
+
+  //cv::Mat image=cv::imread(input.c_str(),cv::IMREAD_COLOR);
 
   //if( image.empty()){
   //  std::cout <<  "Could not open or find the image" << std::endl ;
