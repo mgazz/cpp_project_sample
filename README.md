@@ -1,5 +1,5 @@
 #### Install Dependencies
-** To be checked...**
+** To be checked... **
 ```
 ./deps/install_bazel_tx2.sh
 ./deps/build_tensorflow.sh
@@ -22,3 +22,5 @@ make -j$(nproc)
 
 ./bin/example ../ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb image_tensor:0 299 ../resources/data/test4.jpg
 ```
+
+**Result will of 50 inference iterations will be logged in:** ```./latency_results_in_ms.csv ```
