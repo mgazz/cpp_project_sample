@@ -1,10 +1,13 @@
-```
 #### Install Dependencies
+** To be checked...**
 ```
-./installBazel.sh
+./deps/install_bazel_tx2.sh
+./deps/build_tensorflow.sh
 
 ```
 
+#### Compile project
+```
 wget http://download.tensorflow.org/models/object_detection/ssd_mobilenet_v1_coco_11_06_2017.tar.gz
 
 extract ssd_mobilenet_v1_coco_11_06_2017.tar.gz 
@@ -17,5 +20,5 @@ cmake ..
 
 make -j$(nproc)
 
-./bin/example
+./bin/example ../ssd_mobilenet_v1_coco_11_06_2017/frozen_inference_graph.pb image_tensor:0 299 ../resources/data/test4.jpg
 ```
